@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DOM NAVALHA // Cyber Barber Club 3D (DEMO)</title>
+  <style>
+    :root {
+      --bg-void: #050507;
+      --panel-glass: rgba(18, 19, 26, 0.78);
+      --panel-border: rgba(251, 191, 36, 0.3);
+      --gold: #f59e0b;
+      --gold-neon: #fbbf24;
+      --cyan-neon: #06b6d4;
+      --emerald-neon: #10b981;
+      --text-main: #f8fafc;
+      --text-dim: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: var(--bg-void);
+      color: var(--text-main);
+      overflow-x: hidden;
+      perspective: 1200px;
+    }
+
+    /* ================= FAIXA DE PROTEÇÃO / DEMONSTRAÇÃO ================= */
+    .demo-banner {
+      background: linear-gradient(90deg, #b45309, #f59e0b, #b45309);
+      color: #050507;
+      text-align: center;
+      padding: 7px 12px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      position: relative;
+      z-index: 120;
+      box-shadow: 0 2px 12px rgba(245, 158, 11, 0.4);
+    }
+
+    /* ================= FUNDO DIGITAL GRID 3D ================= */
+    .cyber-grid-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      background: 
+        radial-gradient(circle at 50% 10%, rgba(245, 158, 11, 0.16), transparent 50%),
+        radial-gradient(circle at 85% 65%, rgba(6, 182, 212, 0.14), transparent 45%),
+        radial-gradient(circle at 15% 85%, rgba(245, 158, 11, 0.1), transparent 45%),
+        linear-gradient(to bottom, #050507 0%, #0a0b10 100%);
+    }
+
+    .grid-lines {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background-image: 
+        linear-gradient(to right, rgba(251, 191, 36, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(251, 191, 36, 0.05) 1px, transparent 1px);
+      background-size: 34px 34px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.85) 15%, transparent 95%);
+    }
+
+    /* ================= PAINEL DIGITAL TOPO (HUD) ================= */
+    .hud-topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(8, 9, 13, 0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(251, 191, 36, 0.25);
+      padding: 11px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .hud-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      font-size: 14px;
+      color: var(--gold-neon);
+      text-transform: uppercase;
+    }
+
+    .barber-pole {
+      width: 12px;
+      height: 26px;
+      border-radius: 6px;
+      background: repeating-linear-gradient(
+        -45deg,
+        #ef4444,
+        #ef4444 4px,
+        #ffffff 4px,
+        #ffffff 8px,
+        #3b82f6 8px,
+        #3b82f6 12px
+      );
+      background-size: 200% 200%;
+      animation: poleSpin 1.8s linear infinite;
+      box-shadow: 0 0 10px rgba(255,255,255,0.4);
+    }
+
+    .hud-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(6, 182, 212, 0.14);
+      border: 1px solid rgba(6, 182, 212, 0.5);
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #67e8f9;
+      letter-spacing: 0.5px;
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--cyan-neon);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--cyan-neon);
+      animation: blink 1.4s infinite;
+    }
+
+    /* ================= HERO 3D HOLOGRÁFICO ================= */
+    .hero {
+      padding: 20px 16px 28px;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .hero-card-3d {
+      position: relative;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid var(--panel-border);
+      background: #111116;
+      box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.85),
+        0 0 35px rgba(245, 158, 11, 0.18);
+      transform-style: preserve-3d;
+      transition: transform 0.2s ease-out;
+    }
+
+    .hero-img-wrap {
+      position: relative;
+      height: 340px;
+      overflow: hidden;
+    }
+
+    .hero-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: contrast(112%) brightness(0.75);
+    }
+
+    .scanline {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, transparent 50%, rgba(251, 191, 36, 0.08) 51%, transparent 52%);
+      background-size: 100% 8px;
+      pointer-events: none;
+    }
+
+    .hero-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, #0d0d12 12%, rgba(13, 13, 18, 0.35) 65%, transparent 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 22px 18px;
+    }
+
+    .digital-tag {
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--cyan-neon);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      text-shadow: 0 0 8px rgba(6, 182, 212, 0.6);
+    }
+
+    .hero-overlay h1 {
+      font-size: 32px;
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .hero-overlay h1 span {
+      background: linear-gradient(90deg, #fbbf24, #f59e0b, #fef08a);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-overlay p {
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+
+    /* ================= PAINEL DIGITAL DE TELEMETRIA ================= */
+    .telemetry-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      background: rgba(12, 13, 18, 0.96);
+    }
+
+    .tele-box {
+      padding: 12px 6px;
+      text-align: center;
+      border-right: 1px solid rgba(255,255,255,0.06);
+    }
+    .tele-box:last-child { border-right: none; }
+
+    .tele-val {
+      font-family: monospace;
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--gold-neon);
+      text-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+    }
+
+    .tele-lbl {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-dim);
+      margin-top: 3px;
+    }
+
+    /* ================= BOTÃO NEON 3D PRINCIPAL (IA) ================= */
+    .cta-container {
+      margin-top: 16px;
+    }
+
+    .btn-3d-gold {
+      width: 100%;
+      padding: 17px 22px;
+      border: none;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: #050507;
+      font-size: 15.5px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      cursor: pointer;
+      box-shadow: 
+        0 6px 0 #92400e,
+        0 14px 30px rgba(245, 158, 11, 0.45);
+      transition: all 0.12s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .btn-3d-gold:active {
+      transform: translateY(4px);
+      box-shadow: 
+        0 2px 0 #92400e,
+        0 6px 15px rgba(245, 158, 11, 0.35);
+    }
+
+    /* ================= SEÇÕES & PAINÉIS DE VIDRO ================= */
+    .section {
+      padding: 22px 16px;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(251, 191, 36, 0.22);
+    }
+
+    .panel-title h2 {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .panel-code {
+      font-family: monospace;
+      font-size: 10.5px;
+      color: var(--gold-neon);
+      background: rgba(251, 191, 36, 0.1);
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+
+    /* ================= PAINEL DIGITAL DE DESTAQUES / EXTRAS ================= */
+    .perks-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .perk-panel {
+      background: var(--panel-glass);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(6, 182, 212, 0.25);
+      border-radius: 16px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+    }
+
+    .perk-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .perk-icon {
+      font-size: 20px;
+    }
+
+    .perk-tag {
+      font-family: monospace;
+      font-size: 9.5px;
+      color: var(--cyan-neon);
+      background: rgba(6, 182, 212, 0.12);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .perk-panel h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+
+    .perk-panel p {
+      font-size: 11.5px;
+      color: var(--text-dim);
+      line-height: 1.35;
+    }
+
+    /* ================= PAINEL EQUIPE DE ESPECIALISTAS 3D ================= */
+    .barbers-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .barber-card-3d {
+      background: var(--panel-glass);
+      border: 1px solid rgba(251, 191, 36, 0.25);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 14px 30px rgba(0,0,0,0.55);
+      cursor: pointer;
+    }
+
+    .barber-photo {
+      height: 175px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .barber-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .barber-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(5, 5, 7, 0.85);
+      border: 1px solid var(--gold-neon);
+      color: var(--gold-neon);
+      font-family: monospace;
+      font-size: 10px;
+      padding: 3px 7px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+
+    .barber-meta {
+      padding: 12px;
+    }
+
+    .barber-meta h3 {
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .barber-meta p {
+      font-size: 11.5px;
+      color: var(--cyan-neon);
+      margin-top: 2px;
+      font-family: monospace;
+    }
+
+    /* ================= CARDS 3D DE SERVIÇOS ================= */
+    .cards-3d-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .tilt-card {
+      background: var(--panel-glass);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-left: 3px solid var(--gold-neon);
+      border-radius: 16px;
+      padding: 15px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+      transform-style: preserve-3d;
+      transition: transform 0.18s ease-out, border-color 0.2s;
+      cursor: pointer;
+    }
+
+    .tilt-card:hover {
+      border-color: var(--gold-neon);
+    }
+
+    .card-info h3 {
+      font-size: 15.5px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 3px;
+    }
+
+    .card-info p {
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.35;
+    }
+
+    .digital-price {
+      font-family: monospace;
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--gold-neon);
+      background: rgba(5, 5, 7, 0.85);
+      border: 1px solid rgba(251, 191, 36, 0.4);
+      padding: 8px 12px;
+      border-radius: 11px;
+      box-shadow: inset 0 0 12px rgba(251, 191, 36, 0.15);
+      white-space: nowrap;
+    }
+
+    /* ================= GALERIA 3D TURBINADA (5 FOTOS) ================= */
+    .gallery-3d {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .photo-frame-3d {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      aspect-ratio: 4 / 5;
+      border: 1px solid rgba(251, 191, 36, 0.25);
+      box-shadow: 0 15px 30px rgba(0,0,0,0.6);
+      transform-style: preserve-3d;
+      transition: transform 0.2s ease;
+    }
+
+    .photo-frame-3d.featured {
+      grid-column: span 2;
+      aspect-ratio: 16 / 9;
+    }
+
+    .photo-frame-3d img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .hud-corner {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      right: 8px;
+      background: rgba(10, 10, 14, 0.82);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 7px 10px;
+      border-radius: 9px;
+      font-size: 11.5px;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .hud-corner span:last-child {
+      font-family: monospace;
+      color: var(--cyan-neon);
+      font-size: 10px;
+    }
+
+    /* ================= PAINEL DE AVALIAÇÕES DIGITAIS ================= */
+    .reviews-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .review-panel {
+      background: var(--panel-glass);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 14px 16px;
+    }
+
+    .review-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .review-author {
+      font-weight: 700;
+      font-size: 13.5px;
+      color: #fff;
+    }
+
+    .review-stars {
+      color: var(--gold-neon);
+      font-size: 12px;
+      letter-spacing: 1px;
+    }
+
+    .review-text {
+      font-size: 12.5px;
+      color: var(--text-dim);
+      font-style: italic;
+    }
+
+    /* ================= PAINEL RADAR GOOGLE MAPS ================= */
+    .radar-panel {
+      background: var(--panel-glass);
+      backdrop-filter: blur(14px);
+      border: 1px solid var(--panel-border);
+      border-radius: 22px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+
+    .radar-header {
+      padding: 11px 16px;
+      background: rgba(5, 5, 7, 0.88);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--cyan-neon);
+    }
+
+    .map-frame {
+      width: 100%;
+      height: 240px;
+      border: 0;
+      filter: invert(90%) hue-rotate(180deg) contrast(105%);
+    }
+
+    .radar-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .gps-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13.5px;
+      color: #e2e8f0;
+    }
+
+    .btn-gps {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      background: rgba(6, 182, 212, 0.14);
+      border: 1px solid var(--cyan-neon);
+      color: #67e8f9;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 13.5px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ================= BOTÃO FLUTUANTE EXCLUSIVO DA IA ================= */
+    .ai-floating-3d {
+      position: fixed;
+      bottom: 18px;
+      right: 16px;
+      background: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%);
+      color: #050507;
+      padding: 13px 18px;
+      border: 1px solid #67e8f9;
+      border-radius: 50px;
+      font-weight: 900;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      box-shadow: 
+        0 4px 0 #0369a1,
+        0 10px 28px rgba(6, 182, 212, 0.55);
+      z-index: 900;
+      transition: transform 0.15s;
+    }
+
+    .ai-floating-3d:active {
+      transform: translateY(3px);
+    }
+
+    .ai-orb {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 0 10px #ffffff;
+      animation: blink 1s infinite;
+    }
+
+    /* ================= MODAL CHAT COMPACTO + BOTÃO VOLTAR ================= */
+    .chat-modal {
+      position: fixed;
+      inset: 0;
+      height: 100dvh;
+      background: #08080c;
+      z-index: 2000;
+      display: none;
+      flex-direction: column;
+      max-width: 480px;
+      margin: 0 auto;
+      border-left: 1px solid rgba(6, 182, 212, 0.3);
+      border-right: 1px solid rgba(6, 182, 212, 0.3);
+      overflow: hidden;
+    }
+
+    .chat-modal.open { display: flex; }
+
+    .chat-top {
+      background: rgba(12, 14, 20, 0.98);
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(6, 182, 212, 0.3);
+      flex-shrink: 0;
+      gap: 8px;
+    }
+
+    .btn-back-home {
+      background: rgba(251, 191, 36, 0.14);
+      border: 1px solid rgba(251, 191, 36, 0.45);
+      color: var(--gold-neon);
+      padding: 7px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .btn-back-home:active {
+      background: var(--gold-neon);
+      color: #050507;
+    }
+
+    .ai-avatar-hud {
+      width: 30px;
+      height: 30px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, #06b6d4, #2563eb);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+
+    .chat-stream {
+      flex: 1;
+      min-height: 150px;
+      padding: 12px 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background-image: radial-gradient(rgba(6, 182, 212, 0.08) 1px, transparent 1px);
+      background-size: 22px 22px;
+      scroll-behavior: smooth;
+    }
+
+    .msg {
+      max-width: 86%;
+      padding: 9px 13px;
+      border-radius: 14px;
+      font-size: 13.5px;
+      line-height: 1.38;
+      animation: slideUp 0.2s ease;
+    }
+
+    .msg.bot {
+      background: rgba(20, 24, 34, 0.95);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      color: #f1f5f9;
+      align-self: flex-start;
+      border-top-left-radius: 2px;
+    }
+
+    .msg.user {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #050507;
+      font-weight: 700;
+      align-self: flex-end;
+      border-top-right-radius: 2px;
+    }
+
+    .typing-dots {
+      display: inline-flex;
+      gap: 4px;
+      padding: 10px 14px;
+      align-items: center;
+    }
+    .typing-dots span {
+      width: 6px;
+      height: 6px;
+      background: var(--cyan-neon);
+      border-radius: 50%;
+      animation: bounce 1.2s infinite ease-in-out;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+    .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+    .ticket-3d {
+      background: linear-gradient(145deg, #131620, #0b0d13);
+      border: 1px solid var(--cyan-neon);
+      border-radius: 14px;
+      padding: 12px 14px;
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.18);
+    }
+
+    .ticket-3d h3 {
+      font-family: monospace;
+      color: var(--cyan-neon);
+      font-size: 12px;
+      margin-bottom: 6px;
+      letter-spacing: 0.8px;
+    }
+
+    .ticket-row {
+      font-size: 12.5px;
+      padding: 5px 0;
+      border-bottom: 1px dashed rgba(255,255,255,0.12);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .ticket-row:last-child { border-bottom: none; }
+
+    .chat-controls {
+      background: #0c0e14;
+      padding: 10px 12px;
+      border-top: 1px solid rgba(6, 182, 212, 0.25);
+      flex-shrink: 0;
+    }
+
+    .opt-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+    }
+
+    .opt-pill {
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid rgba(6, 182, 212, 0.45);
+      color: #67e8f9;
+      padding: 10px 10px;
+      border-radius: 10px;
+      font-size: 12.5px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.25;
+      cursor: pointer;
+    }
+
+    .opt-pill.full-span {
+      grid-column: span 2;
+    }
+
+    .opt-pill:active {
+      background: var(--cyan-neon);
+      color: #050507;
+    }
+
+    .input-row { display: flex; gap: 8px; }
+    .input-row input {
+      flex: 1;
+      background: #141824;
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      padding: 11px 14px;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .btn-send {
+      width: 44px;
+      border-radius: 12px;
+      background: var(--cyan-neon);
+      color: #050507;
+      border: none;
+      font-weight: 900;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .btn-wa-final {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #25d366, #128c7e);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 14px;
+      box-shadow: 0 4px 16px rgba(37, 211, 102, 0.4);
+    }
+
+    .btn-restart-chat {
+      width: 100%;
+      margin-top: 8px;
+      padding: 9px;
+      border-radius: 10px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.18);
+      color: var(--text-dim);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* ================= RODAPÉ COM ASSINATURA DO CRIADOR ================= */
+    footer {
+      text-align: center;
+      padding: 28px 18px 92px;
+      border-top: 1px solid rgba(251, 191, 36, 0.15);
+      background: rgba(5, 5, 7, 0.85);
+    }
+
+    .creator-badge {
+      display: inline-block;
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      color: var(--gold-neon);
+      padding: 8px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .footer-sub {
+      font-family: monospace;
+      font-size: 10.5px;
+      color: var(--text-dim);
+    }
+
+    @keyframes poleSpin {
+      0% { background-position: 0% 0%; }
+      100% { background-position: 0% 200%; }
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- FAIXA DE DEMONSTRAÇÃO BLINDADA -->
+  <div class="demo-banner">
+    ⚡ MODELO DE DEMONSTRAÇÃO • PROJETO POR LYRIKER SILVA DE ASSIS
+  </div>
+
+  <div class="cyber-grid-bg"></div>
+  <div class="grid-lines"></div>
+
+  <!-- PAINEL SUPERIOR DIGITAL -->
+  <nav class="hud-topbar">
+    <div class="hud-brand">
+      <div class="barber-pole"></div>
+      <span>DOM NAVALHA</span>
+    </div>
+    <div class="hud-status">
+      <span class="pulse-dot"></span>
+      <span>IA CONCIERGE ATIVA</span>
+    </div>
+  </nav>
+
+  <!-- HERO COM CARTÃO 3D INTERATIVO -->
+  <header class="hero">
+    <div class="hero-card-3d" id="hero-3d">
+      <div class="hero-img-wrap">
+        <img src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=1080&q=85" alt="Barbearia Dom Navalha">
+        <div class="scanline"></div>
+        <div class="hero-overlay">
+          <div class="digital-tag">// BARBER CLUB 3.0 • PRATA - MG</div>
+          <h1>ESTILO DE ALTO <span>IMPACTO</span></h1>
+          <p>Atendimento inteligente 24h. Nossa IA escolhe o melhor horário, estilo e barbeiro para você em segundos.</p>
+        </div>
+      </div>
+
+      <!-- TELEMETRIA DIGITAL 4 COLUNAS -->
+      <div class="telemetry-strip">
+        <div class="tele-box">
+          <div class="tele-val" id="live-clock">09:00</div>
+          <div class="tele-lbl">Hora Local</div>
+        </div>
+        <div class="tele-box">
+          <div class="tele-val">4.9 ★</div>
+          <div class="tele-lbl">Avaliação</div>
+        </div>
+        <div class="tele-box">
+          <div class="tele-val" style="color:#34d399;">+1.2K</div>
+          <div class="tele-lbl">Clientes</div>
+        </div>
+        <div class="tele-box">
+          <div class="tele-val" style="color:#67e8f9;">IA 24H</div>
+          <div class="tele-lbl">Recepção</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cta-container">
+      <button class="btn-3d-gold" onclick="openChat()">
+        🤖 Falar com a IA & Agendar
+      </button>
+    </div>
+  </header>
+
+  <!-- PAINEL DIGITAL DE DIFERENCIAIS / EXPERIÊNCIA VIP -->
+  <section class="section">
+    <div class="panel-title">
+      <h2>Experiência VIP</h2>
+      <span class="panel-code">SYSTEM // PERKS</span>
+    </div>
+
+    <div class="perks-grid">
+      <div class="perk-panel">
+        <div class="perk-top">
+          <span class="perk-icon">❄️</span>
+          <span class="perk-tag">CLIMA 21°C</span>
+        </div>
+        <h3>Ambiente Climatizado</h3>
+        <p>Conforto total com poltronas reclináveis e som ambiente.</p>
+      </div>
+
+      <div class="perk-panel">
+        <div class="perk-top">
+          <span class="perk-icon">☕</span>
+          <span class="perk-tag">CORTESIA</span>
+        </div>
+        <h3>Café & Gelada</h3>
+        <p>Café expresso ou bebida gelada por conta da casa.</p>
+      </div>
+
+      <div class="perk-panel">
+        <div class="perk-top">
+          <span class="perk-icon">⚡</span>
+          <span class="perk-tag">ZERO FILA</span>
+        </div>
+        <h3>Hora Marcada</h3>
+        <p>Pontualidade digital controlada pela nossa IA.</p>
+      </div>
+
+      <div class="perk-panel">
+        <div class="perk-top">
+          <span class="perk-icon">📶</span>
+          <span class="perk-tag">5G FIBRA</span>
+        </div>
+        <h3>Wi-Fi Ultra Rápido</h3>
+        <p>Conexão liberada enquanto você aguarda ou corta.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAINEL EQUIPE DE ESPECIALISTAS 3D -->
+  <section class="section">
+    <div class="panel-title">
+      <h2>Nossos Barbeiros</h2>
+      <span class="panel-code">TEAM // PRO</span>
+    </div>
+
+    <div class="barbers-grid">
+      <div class="barber-card-3d" onclick="openChat()">
+        <div class="barber-photo">
+          <img src="https://images.unsplash.com/photo-1618077360395-f3068be8e001?auto=format&fit=crop&w=600&q=85" alt="Lucas Silva">
+          <span class="barber-badge">MASTER</span>
+        </div>
+        <div class="barber-meta">
+          <h3>Lucas Silva</h3>
+          <p>// FADE & VISAGISMO</p>
+        </div>
+      </div>
+
+      <div class="barber-card-3d" onclick="openChat()">
+        <div class="barber-photo">
+          <img src="https://images.unsplash.com/photo-1534308143481-c55f00be8bd7?auto=format&fit=crop&w=600&q=85" alt="Rafael Mendes">
+          <span class="barber-badge">SENIOR</span>
+        </div>
+        <div class="barber-meta">
+          <h3>Rafael Mendes</h3>
+          <p>// BARBA & NAVALHA</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAINEL DE SERVIÇOS 3D -->
+  <section class="section">
+    <div class="panel-title">
+      <h2>Menu de Serviços</h2>
+      <span class="panel-code">TABELA // 2026</span>
+    </div>
+
+    <div class="cards-3d-stack">
+      <div class="tilt-card" onclick="openChat()">
+        <div class="card-info">
+          <h3>✂️ Corte Degradê / Fade</h3>
+          <p>Disfarce perfeito na zero ou navalha + lavagem e pomada matte.</p>
+        </div>
+        <div class="digital-price">R$ 35</div>
+      </div>
+
+      <div class="tilt-card" onclick="openChat()">
+        <div class="card-info">
+          <h3>🧔 Barboterapia & Toalha Quente</h3>
+          <p>Vapor de ozônio, alinhamento na navalha e óleo hidratante.</p>
+        </div>
+        <div class="digital-price">R$ 25</div>
+      </div>
+
+      <div class="tilt-card" onclick="openChat()">
+        <div class="card-info">
+          <h3>🔥 Combo VIP (Corte + Barba)</h3>
+          <p>Transformação completa + sobrancelha de cortesia.</p>
+        </div>
+        <div class="digital-price">R$ 55</div>
+      </div>
+
+      <div class="tilt-card" onclick="openChat()">
+        <div class="card-info">
+          <h3>✨ Acabamento & Sobrancelha</h3>
+          <p>Alinhamento preciso de contorno e design masculino.</p>
+        </div>
+        <div class="digital-price">R$ 15</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GALERIA DE FOTOS TURBINADA (5 FOTOS) -->
+  <section class="section">
+    <div class="panel-title">
+      <h2>Galeria & Resultados</h2>
+      <span class="panel-code">CAM // 01-05</span>
+    </div>
+
+    <div class="gallery-3d">
+      <div class="photo-frame-3d featured">
+        <img src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=900&q=85" alt="Lounge Barbearia">
+        <div class="hud-corner">
+          <span>Lounge Climatizado & Estação Principal</span>
+          <span>[CAM 01]</span>
+        </div>
+      </div>
+
+      <div class="photo-frame-3d">
+        <img src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=600&q=85" alt="Corte Fade">
+        <div class="hud-corner">
+          <span>Skin Fade</span>
+          <span>#02</span>
+        </div>
+      </div>
+
+      <div class="photo-frame-3d">
+        <img src="https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=600&q=85" alt="Barba">
+        <div class="hud-corner">
+          <span>Barba Navalha</span>
+          <span>#03</span>
+        </div>
+      </div>
+
+      <div class="photo-frame-3d">
+        <img src="https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=600&q=85" alt="Acabamento">
+        <div class="hud-corner">
+          <span>Precisão</span>
+          <span>#04</span>
+        </div>
+      </div>
+
+      <div class="photo-frame-3d">
+        <img src="https://images.unsplash.com/photo-1593702275687-f8b402bf1fb5?auto=format&fit=crop&w=600&q=85" alt="Produtos">
+        <div class="hud-corner">
+          <span>Produtos VIP</span>
+          <span>#05</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAINEL DE FEEDBACKS DOS CLIENTES -->
+  <section class="section">
+    <div class="panel-title">
+      <h2>Avaliações Reais</h2>
+      <span class="panel-code">SCORE // 4.9</span>
+    </div>
+
+    <div class="reviews-stack">
+      <div class="review-panel">
+        <div class="review-head">
+          <span class="review-author">Matheus Oliveira</span>
+          <span class="review-stars">★★★★★</span>
+        </div>
+        <p class="review-text">"Melhor degradê da cidade! Agendei pela IA em 20 segundos e fui atendido sem esperar 1 minuto."</p>
+      </div>
+
+      <div class="review-panel">
+        <div class="review-head">
+          <span class="review-author">Gabriel Costa</span>
+          <span class="review-stars">★★★★★</span>
+        </div>
+        <p class="review-text">"Ambiente top demais, barba na toalha quente diferenciada e atendimento nota 10."</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- RADAR GOOGLE MAPS -->
+  <section class="section" id="mapa">
+    <div class="panel-title">
+      <h2>Radar & Localização</h2>
+      <span class="panel-code">GPS // ATIVO</span>
+    </div>
+
+    <div class="radar-panel">
+      <div class="radar-header">
+        <span>SAT-VIEW: PRATA - MG</span>
+        <span>● SINAL ESTÁVEL</span>
+      </div>
+
+      <iframe
+        class="map-frame"
+        src="https://www.google.com/maps?q=Prata,+MG&output=embed"
+        allowfullscreen=""
+        loading="lazy">
+      </iframe>
+
+      <div class="radar-body">
+        <div class="gps-row">
+          <span>📍</span>
+          <div><strong>Av. Principal, 450</strong> — Centro, Prata - MG</div>
+        </div>
+        <div class="gps-row">
+          <span>🕒</span>
+          <div><strong>Seg a Sáb:</strong> 09:00 às 20:00</div>
+        </div>
+        <a href="https://www.google.com/maps/search/?api=1&query=Prata+MG" target="_blank" class="btn-gps">
+          🛰️ TRAÇAR ROTA NO GOOGLE MAPS
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="creator-badge">
+      🚀 Desenvolvido por Lyriker Silva de Assis • Demonstração Exclusiva
+    </div>
+    <div class="footer-sub">
+      SYS.DOM.NAVALHA // AI CONCIERGE © 2026
+    </div>
+  </footer>
+
+  <!-- BOTÃO FLUTUANTE EXCLUSIVO DA INTELIGÊNCIA ARTIFICIAL -->
+  <button class="ai-floating-3d" onclick="openChat()">
+    <span class="ai-orb"></span>
+    <span>🤖 ATENDIMENTO IA</span>
+  </button>
+
+  <!-- MODAL CHAT INTELIGÊNCIA ARTIFICIAL COM BOTÃO VOLTAR -->
+  <div class="chat-modal" id="chat-modal">
+    <div class="chat-top">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div class="ai-avatar-hud">🤖</div>
+        <div>
+          <div style="font-weight:800; font-size:13px; color:#67e8f9;">NAVALHA AI</div>
+          <div id="ai-status" style="font-family:monospace; font-size:10px; color:#34d399;">● ONLINE</div>
+        </div>
+      </div>
+      <button class="btn-back-home" onclick="closeChat()">
+        ← Voltar ao Início
+      </button>
+    </div>
+    <div class="chat-stream" id="chat-stream"></div>
+    <div class="chat-controls" id="chat-controls"></div>
+  </div>
+
+<script>
+  const WHATSAPP_NUMBER = "5534996528326";
+
+  function updateClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    document.getElementById('live-clock').textContent = `${h}:${m}`;
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  document.querySelectorAll('.tilt-card, .hero-card-3d, .barber-card-3d').forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const rect = card.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / rect.width - 0.5;
+      const y = (e.clientY - rect.top) / rect.height - 0.5;
+      card.style.transform = `rotateY(${x * 8}deg) rotateX(${-y * 8}deg)`;
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'rotateY(0deg) rotateX(0deg)';
+    });
+  });
+
+  const flow = [
+    {
+      key: "nome",
+      question: "Olá! 🤖 Eu sou a **Navalha AI**. Qual é o seu nome para eu iniciar seu agendamento?",
+      type: "text",
+      placeholder: "Digite seu nome..."
+    },
+    {
+      key: "servico",
+      question: "Prazer, {nome}! Qual serviço você deseja hoje?",
+      type: "options",
+      options: [
+        "✂️ Corte — R$ 35",
+        "🧔 Barba — R$ 25",
+        "🔥 Combo — R$ 55",
+        "✨ Acabamento — R$ 15"
+      ]
+    },
+    {
+      key: "profissional",
+      question: "Escolha o barbeiro:",
+      type: "options",
+      options: [
+        "💈 Lucas Silva",
+        "💈 Rafael Mendes",
+        "⚡ Tanto faz (Mais rápido)"
+      ]
+    },
+    {
+      key: "dia",
+      question: "Para qual dia?",
+      type: "options",
+      options: [
+        "📅 Hoje",
+        "📅 Amanhã",
+        "📅 Sex / Sáb"
+      ]
+    },
+    {
+      key: "turno",
+      question: "Qual melhor horário?",
+      type: "options",
+      options: [
+        "☀️ Manhã (09h-12h)",
+        "🌤️ Tarde (13h-18h)",
+        "🌙 Noite (18h-20h)"
+      ]
+    }
+  ];
+
+  let step = 0;
+  let initialized = false;
+  const answers = {};
+  const modal = document.getElementById("chat-modal");
+  const stream = document.getElementById("chat-stream");
+  const controls = document.getElementById("chat-controls");
+  const aiStatus = document.getElementById("ai-status");
+
+  function scrollChat() {
+    requestAnimationFrame(() => {
+      stream.scrollTop = stream.scrollHeight;
+    });
+  }
+
+  function openChat() {
+    modal.classList.add("open");
+    if (!initialized) {
+      initialized = true;
+      renderStep();
+    } else {
+      scrollChat();
+    }
+  }
+
+  function closeChat() {
+    modal.classList.remove("open");
+  }
+
+  function restartChat() {
+    step = 0;
+    stream.innerHTML = "";
+    controls.innerHTML = "";
+    renderStep();
+  }
+
+  function showAiThinking() {
+    aiStatus.textContent = "● IA PROCESSANDO...";
+    const div = document.createElement("div");
+    div.className = "msg bot typing-dots";
+    div.id = "ai-thinking";
+    div.innerHTML = "<span></span><span></span><span></span>";
+    stream.appendChild(div);
+    scrollChat();
+  }
+
+  function hideAiThinking() {
+    aiStatus.textContent = "● ONLINE";
+    const el = document.getElementById("ai-thinking");
+    if (el) el.remove();
+  }
+
+  function pushMsg(html, type) {
+    const div = document.createElement("div");
+    div.className = `msg ${type}`;
+    div.innerHTML = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    stream.appendChild(div);
+    scrollChat();
+  }
+
+  function renderStep() {
+    controls.innerHTML = "";
+    scrollChat();
+
+    if (step >= flow.length) {
+      showTicket();
+      return;
+    }
+
+    const current = flow[step];
+    let q = current.question;
+    for (const k in answers) q = q.replace(`{${k}}`, answers[k]);
+
+    showAiThinking();
+
+    setTimeout(() => {
+      hideAiThinking();
+      pushMsg(q, "bot");
+
+      if (current.type === "text") {
+        controls.innerHTML = `
+          <div class="input-row">
+            <input type="text" id="inp-name" placeholder="${current.placeholder}" autocomplete="off">
+            <button class="btn-send" onclick="sendName()">➤</button>
+          </div>
+        `;
+        const inp = document.getElementById("inp-name");
+        inp.focus();
+        inp.addEventListener("keydown", e => { if (e.key === "Enter") sendName(); });
+      } else {
+        const grid = document.createElement("div");
+        grid.className = "opt-grid";
+        current.options.forEach((opt, idx) => {
+          const b = document.createElement("button");
+          b.className = "opt-pill";
+          if (current.options.length % 2 !== 0 && idx === current.options.length - 1) {
+            b.classList.add("full-span");
+          }
+          b.textContent = opt;
+          b.onclick = () => {
+            answers[current.key] = opt;
+            pushMsg(opt, "user");
+            step++;
+            renderStep();
+          };
+          grid.appendChild(b);
+        });
+        controls.appendChild(grid);
+      }
+      setTimeout(scrollChat, 60);
+    }, 550);
+  }
+
+  function sendName() {
+    const inp = document.getElementById("inp-name");
+    const v = inp.value.trim();
+    if (!v) return;
+    answers[flow[step].key] = v;
+    pushMsg(v, "user");
+    step++;
+    renderStep();
+  }
+
+  function showTicket() {
+    showAiThinking();
+    setTimeout(() => {
+      hideAiThinking();
+      pushMsg("Pronto, **" + answers.nome + "**! Confira seu relatório e toque no botão verde para testar o envio no WhatsApp:", "bot");
+
+      const ticket = document.createElement("div");
+      ticket.className = "ticket-3d";
+      ticket.innerHTML = `
+        <h3>// RELATÓRIO NAVALHA AI (DEMO)</h3>
+        <div class="ticket-row"><span>CLIENTE:</span><strong>${answers.nome}</strong></div>
+        <div class="ticket-row"><span>SERVIÇO:</span><strong>${answers.servico}</strong></div>
+        <div class="ticket-row"><span>BARBEIRO:</span><strong>${answers.profissional}</strong></div>
+        <div class="ticket-row"><span>DIA:</span><strong>${answers.dia}</strong></div>
+        <div class="ticket-row"><span>TURNO:</span><strong>${answers.turno}</strong></div>
+      `;
+      stream.appendChild(ticket);
+      scrollChat();
+
+      const text = `Olá *Lyriker*! Testei a demonstração da *Navalha AI*:%0A%0A` +
+                   `*Cliente:* ${encodeURIComponent(answers.nome)}%0A` +
+                   `*Serviço:* ${encodeURIComponent(answers.servico)}%0A` +
+                   `*Barbeiro:* ${encodeURIComponent(answers.profissional)}%0A` +
+                   `*Dia:* ${encodeURIComponent(answers.dia)}%0A` +
+                   `*Turno:* ${encodeURIComponent(answers.turno)}`;
+
+      controls.innerHTML = `
+        <a href="https://wa.me/${WHATSAPP_NUMBER}?text=${text}" target="_blank" class="btn-wa-final">
+          📲 Testar envio no WhatsApp
+        </a>
+        <button class="btn-restart-chat" onclick="restartChat()">🔄 Refazer teste</button>
+      `;
+      setTimeout(scrollChat, 60);
+    }, 650);
+  }
+</script>
+
+</body>
+</html>
